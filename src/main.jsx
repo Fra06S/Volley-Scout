@@ -11,7 +11,9 @@ import {
   ChevronRight,
   ClipboardList,
   Crosshair,
+  DatabaseBackup,
   Download,
+  FileText,
   Flame,
   Gauge,
   Hand,
@@ -28,6 +30,7 @@ import {
   Trash2,
   TrendingUp,
   Trophy,
+  Upload,
   Users,
   Volleyball,
   Wind,
@@ -348,7 +351,7 @@ function App() {
             <Dashboard stat={stat} events={events} match={match} onGoScout={() => setScreen('scout')} />
           )}
           {screen === 'player-stats' && (
-            <PlayerStats players={players} events={events} fixtures={fixtures} competitions={competitions} />
+            <PlayerStats players={players} events={events} fixtures={fixtures} competitions={competitions} team={team} />
           )}
           {screen === 'roster' && <Roster players={players} setPlayers={setPlayers} team={team} />}
           {screen === 'matches' && (
@@ -373,6 +376,14 @@ function App() {
               onLogout={logout}
               team={team}
               setTeam={setTeam}
+              players={players}
+              setPlayers={setPlayers}
+              events={events}
+              setEvents={setEvents}
+              fixtures={fixtures}
+              setFixtures={setFixtures}
+              competitions={competitions}
+              setCompetitions={setCompetitions}
             />
           )}
         </div>
@@ -733,9 +744,13 @@ function Kpi({ label, value, detail, icon: Icon, tone = 'violet' }) {
   );
 }
 
-function PlayerStats({ players, events, fixtures, competitions }) {
+function PlayerStats({ players, events, fixtures, competitions, team }) {
   const [scope, setScope] = useState('general');
   const [scopeId, setScopeId] = useState('');
+  const [exportFixtureId, setExportFixtureId] = useState('');
+  const [exportPlayerNumber, setExportPlayerNumber] = useState('');
+  const [exporting, setExporting] = useState('');
+  const [exportMessage, setExportMessage] = useState(null);
   const scopedFixtures = scope === 'competition'
     ? fixtures.filter(fixture => fixture.competitionId === scopeId)
     : scope === 'match'
@@ -755,6 +770,38 @@ function PlayerStats({ players, events, fixtures, competitions }) {
   }).sort((a, b) => b.points - a.points || b.actions - a.actions);
   const resetScope = value => { setScope(value); setScopeId(''); };
   const efficiencyClass = value => value >= 40 ? 'excellent' : value < 0 ? 'error' : '';
+
+  const exportMatchReport = async () => {
+    const fixture = fixtures.find(item => item.id === exportFixtureId);
+    if (!fixture) return;
+    setExporting('match');
+    setExportMessage(null);
+    try {
+      const { exportMatchPdf } = await import('./dataFiles');
+      await exportMatchPdf({ team, players, events, fixtures, competitions, fixture, roleLabels, grades, fundamentals });
+      setExportMessage({ type: 'success', text: `PDF della gara generato: ${fixture.home} vs ${fixture.away}.` });
+    } catch (error) {
+      setExportMessage({ type: 'error', text: error?.message || 'Impossibile generare il PDF della gara.' });
+    } finally {
+      setExporting('');
+    }
+  };
+
+  const exportPlayerReport = async () => {
+    const player = players.find(item => String(item.number) === exportPlayerNumber);
+    if (!player) return;
+    setExporting('player');
+    setExportMessage(null);
+    try {
+      const { exportPlayerPdf } = await import('./dataFiles');
+      await exportPlayerPdf({ team, player, players, events, fixtures, competitions, roleLabels, grades, fundamentals });
+      setExportMessage({ type: 'success', text: `PDF atleta generato: #${player.number} ${player.name}.` });
+    } catch (error) {
+      setExportMessage({ type: 'error', text: error?.message || 'Impossibile generare il PDF atleta.' });
+    } finally {
+      setExporting('');
+    }
+  };
 
   return (
     <div className="content player-stats">
@@ -804,6 +851,61 @@ function PlayerStats({ players, events, fixtures, competitions }) {
         <Kpi icon={Trophy} tone="amber" label="Punti diretti" value={scopedEvents.filter(event => event.grade === '#').length} detail="di tutte le giocatrici" />
         <Kpi icon={Users} tone="mint" label="Giocatrici rilevate" value={playerData.filter(player => player.actions > 0).length} detail="con almeno un'azione" />
       </div>
+
+      <section className="card export-panel">
+        <div className="export-panel-head">
+          <span className="setting-icon"><FileText size={18} /></span>
+          <div>
+            <b>Esporta report PDF</b>
+            <small>Un report completo per una singola gara oppure per una giocatrice.</small>
+          </div>
+        </div>
+        <div className="export-controls">
+          <label>
+            Report gara
+            <div className="export-control-row">
+              <select value={exportFixtureId} onChange={event => setExportFixtureId(event.target.value)}>
+                <option value="">Seleziona una gara</option>
+                {fixtures.map(fixture => (
+                  <option value={fixture.id} key={fixture.id}>
+                    {new Date(fixture.date).toLocaleDateString('it-IT')} · {fixture.home} vs {fixture.away}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="outline"
+                onClick={exportMatchReport}
+                disabled={!fixtures.length || !exportFixtureId || !!exporting}
+              >
+                <FileText size={15} /> {exporting === 'match' ? 'Generazione...' : 'PDF gara'}
+              </button>
+            </div>
+          </label>
+          <label>
+            Report atleta
+            <div className="export-control-row">
+              <select value={exportPlayerNumber} onChange={event => setExportPlayerNumber(event.target.value)}>
+                <option value="">Seleziona una giocatrice</option>
+                {players.map(player => (
+                  <option value={String(player.number)} key={player.number}>
+                    {player.number} · {player.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="outline"
+                onClick={exportPlayerReport}
+                disabled={!players.length || !exportPlayerNumber || !!exporting}
+              >
+                <FileText size={15} /> {exporting === 'player' ? 'Generazione...' : 'PDF atleta'}
+              </button>
+            </div>
+          </label>
+        </div>
+        {exportMessage && (
+          <p className={`data-feedback ${exportMessage.type}`} role="status">{exportMessage.text}</p>
+        )}
+      </section>
 
       <section className="card player-stats-table">
         <div className="stats-row stats-head">
@@ -1200,9 +1302,27 @@ function Reports({ stat, events, match, onGoScout }) {
   );
 }
 
-function SettingsPage({ dark, setDark, user, onLogout, team, setTeam }) {
+function SettingsPage({
+  dark,
+  setDark,
+  user,
+  onLogout,
+  team,
+  setTeam,
+  players,
+  setPlayers,
+  events,
+  setEvents,
+  fixtures,
+  setFixtures,
+  competitions,
+  setCompetitions,
+}) {
   const [logoLoading, setLogoLoading] = useState(false);
   const [logoError, setLogoError] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [dataStatus, setDataStatus] = useState(null);
 
   const updateLogo = async event => {
     const file = event.target.files?.[0];
@@ -1223,6 +1343,69 @@ function SettingsPage({ dark, setDark, user, onLogout, team, setTeam }) {
   const removeLogo = () => {
     setTeam(current => ({ ...current, logo: '' }));
     setLogoError('');
+  };
+
+  const exportPdf = async () => {
+    setPdfLoading(true);
+    setDataStatus(null);
+    try {
+      const { exportDataPdf } = await import('./dataFiles');
+      await exportDataPdf({ team, players, events, fixtures, competitions, roleLabels, grades, fundamentals });
+      setDataStatus({ type: 'success', text: 'PDF generato e scaricato correttamente.' });
+    } catch (error) {
+      setDataStatus({ type: 'error', text: error?.message || 'Impossibile generare il PDF.' });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const saveBackup = async () => {
+    setDataStatus(null);
+    try {
+      const { downloadBackup } = await import('./dataFiles');
+      const filename = downloadBackup({
+        team,
+        players,
+        events,
+        fixtures,
+        competitions,
+        theme: dark ? 'dark' : 'light',
+      });
+      setDataStatus({ type: 'success', text: `Backup salvato: ${filename}` });
+    } catch (error) {
+      setDataStatus({ type: 'error', text: error?.message || 'Impossibile creare il backup.' });
+    }
+  };
+
+  const restoreBackup = async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImportLoading(true);
+    setDataStatus(null);
+    try {
+      const { parseBackupFile } = await import('./dataFiles');
+      const data = await parseBackupFile(file);
+      if (!window.confirm('Ripristinare il backup selezionato? Tutti i dati attuali di squadra, roster, partite e statistiche verranno sostituiti.')) {
+        setDataStatus({ type: 'info', text: 'Ripristino annullato.' });
+        return;
+      }
+      setTeam(data.team);
+      setPlayers(data.players);
+      setEvents(data.events);
+      setFixtures(data.fixtures);
+      setCompetitions(data.competitions);
+      setDark(data.theme === 'dark');
+      setDataStatus({
+        type: 'success',
+        text: `Backup ripristinato: ${data.players.length} atlete, ${data.fixtures.length} partite e ${data.events.length} azioni.`,
+      });
+    } catch (error) {
+      setDataStatus({ type: 'error', text: error?.message || 'Impossibile ripristinare il backup.' });
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   return (
@@ -1273,6 +1456,42 @@ function SettingsPage({ dark, setDark, user, onLogout, team, setTeam }) {
           >
             <span />
           </button>
+        </section>
+
+        <section className="card data-card">
+          <div className="data-card-head">
+            <span className="setting-icon"><DatabaseBackup size={18} /></span>
+            <div>
+              <b>Dati e backup</b>
+              <small>Esporta un PDF leggibile oppure salva un backup JSON da ricaricare per ripristinare tutto.</small>
+            </div>
+          </div>
+          <div className="data-actions">
+            <button className="primary" onClick={exportPdf} disabled={pdfLoading}>
+              <FileText size={16} />
+              {pdfLoading ? 'Generazione PDF...' : 'Salva PDF'}
+            </button>
+            <button className="outline" onClick={saveBackup}>
+              <DatabaseBackup size={16} /> Backup JSON
+            </button>
+            <label className={'outline upload-label' + (importLoading ? ' loading' : '')}>
+              <Upload size={16} />
+              {importLoading ? 'Ripristino...' : 'Ripristina backup'}
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={restoreBackup}
+                disabled={importLoading}
+                aria-label="Seleziona un backup JSON da ripristinare"
+              />
+            </label>
+          </div>
+          <p className="data-summary">
+            {players.length} atlete · {fixtures.length} partite · {events.length} azioni · {competitions.length} campionati
+          </p>
+          {dataStatus && (
+            <p className={`data-feedback ${dataStatus.type}`} role="status">{dataStatus.text}</p>
+          )}
         </section>
 
         <section className="card settings-card">

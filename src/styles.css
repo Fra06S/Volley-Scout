@@ -746,6 +746,17 @@ input[type='date'], input[type='datetime-local'] { color-scheme: light; }
 /* ===== Player stats ===== */
 .stats-filters { width: fit-content; max-width: 100%; display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 18px; margin-bottom: 18px; }
 .stats-filters label { flex: 0 1 300px; width: min(100%, 300px); min-width: 210px; display: grid; gap: 7px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.export-panel { display: grid; gap: 14px; padding: 18px 20px; margin-bottom: 18px; }
+.export-panel-head { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.export-panel-head > div { min-width: 0; }
+.export-panel-head b { display: block; font-size: 13px; }
+.export-panel-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.export-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.export-controls label { display: grid; gap: 7px; min-width: 0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.export-control-row { display: flex; gap: 8px; min-width: 0; }
+.export-control-row select { flex: 1; min-width: 0; }
+.export-control-row .outline { flex-shrink: 0; white-space: nowrap; }
+.export-control-row button:disabled { opacity: 0.55; pointer-events: none; }
 .player-stats-table { overflow: hidden; }
 .stats-row { display: grid; grid-template-columns: minmax(200px, 1.35fr) 90px 90px 90px 120px; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid var(--line); transition: background 0.16s ease; }
 .stats-row:last-child { border-bottom: 0; }
@@ -879,6 +890,32 @@ input[type='date'], input[type='datetime-local'] { color-scheme: light; }
 .switch.on { background: var(--accent); border-color: var(--accent); }
 .switch.on span { transform: translateX(20px); background: #fff; }
 .setting-tag { flex-shrink: 0; padding: 6px 10px; border-radius: 999px; color: var(--mint); background: var(--mint-soft); font-size: 9px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+.data-card { display: grid; gap: 13px; padding: 20px; }
+.data-card-head { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.data-card-head > div { min-width: 0; }
+.data-card-head b { display: block; font-size: 13px; }
+.data-card-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.data-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.data-actions .primary, .data-actions .outline { white-space: nowrap; }
+.data-actions .upload-label { display: inline-flex; align-items: center; gap: 7px; }
+.data-actions button:disabled, .data-actions .upload-label.loading { opacity: 0.6; pointer-events: none; }
+.data-summary { margin: 0; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.01em; }
+.data-feedback {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.data-feedback.success { color: var(--mint); background: var(--mint-soft); border-color: var(--mint); }
+.data-feedback.error { color: var(--rose); background: var(--rose-soft); border-color: var(--rose); }
+.data-feedback.info { color: var(--blue); background: var(--blue-soft); border-color: var(--blue); }
 .app-version { margin: 28px 0 0; color: var(--muted); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
 
 /* ===== Auth ===== */
@@ -1106,11 +1143,16 @@ input[type='date'], input[type='datetime-local'] { color-scheme: light; }
   .roster-table .role, .roster-table time, .roster-table .table-head span:nth-child(3), .roster-table .table-head span:nth-child(4) { display: none; }
   .stats-filters { width: 100%; }
   .stats-filters label { width: 100%; min-width: 0; }
+  .export-controls { grid-template-columns: 1fr; }
+  .export-control-row { flex-direction: column; }
+  .export-control-row .outline { justify-content: center; }
   .stats-head { font-size: 8px; }
   .stats-row { grid-template-columns: minmax(130px, 1fr) 48px 48px 60px; }
   .settings-card { flex-wrap: wrap; }
   .setting-tag { margin-left: 55px; }
   .setting-actions { width: 100%; margin-left: 55px; }
+  .data-actions { width: 100%; }
+  .data-actions .primary, .data-actions .outline, .data-actions .upload-label { flex: 1 1 100%; }
   .player-photo-add { flex-wrap: wrap; }
   .player-photo-add .outline { margin-left: 0; }
   .auth-page { padding: 12px; }
