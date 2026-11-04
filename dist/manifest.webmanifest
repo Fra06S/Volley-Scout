@@ -1,0 +1,13 @@
+{
+  "name": "VolleyScout — Live Analysis",
+  "short_name": "VolleyScout",
+  "description": "Scouting live e analisi delle partite di pallavolo.",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#0a0f1b",
+  "theme_color": "#101728",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
